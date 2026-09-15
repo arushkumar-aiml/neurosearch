@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Project data (crawled pages + built index are large, rebuild locally)
+data/*.json
+data/*.npy
+data/*.pkl
+data/*.db
+
+# NLTK downloads
+nltk_data/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

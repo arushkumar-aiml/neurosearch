@@ -1,4 +1,3 @@
-
 # 🔍 NeuroSearch
 
 > An AI-powered search engine built from scratch — combining classical Information Retrieval with modern semantic search, so it understands *meaning*, not just keywords.
@@ -10,48 +9,53 @@
 
 ## 🎯 What is NeuroSearch?
 
-Most college search engine projects just do keyword matching. NeuroSearch goes further — it combines **traditional ranking algorithms (TF-IDF, BM25)** with **ML-based semantic search (sentence embeddings)** to return results based on meaning, not just exact word matches. It's a hybrid search engine, built entirely from scratch as a 15-day solo build.
+Most college search engine projects just do keyword matching. NeuroSearch goes further — it combines **traditional ranking algorithms (TF-IDF, BM25)** with **ML-based semantic search (sentence embeddings)** to return results based on meaning, not just exact word matches.
+
+The interface exposes the ranking itself: a live slider blends keyword and semantic scoring, and every result shows a colour-coded breakdown of *why* it ranked where it did.
 
 ## ✨ Features
 
-- 🕷️ **Custom Web Crawler** — fetches and parses pages from scratch, respects `robots.txt`
-- 📚 **Inverted Index** — the core search data structure, built without external search libraries
+- 🕷️ **Custom Web Crawler** — BFS crawl, respects `robots.txt`, extracts clean article text
+- 📚 **Inverted Index** — the core search data structure, built from scratch
 - 📊 **TF-IDF + BM25 Ranking** — classical relevance scoring
 - 🧠 **Semantic Search** — sentence-transformer embeddings for meaning-based matching
-- 🔀 **Hybrid Ranking Engine** — combines keyword + semantic scores for best-of-both results
-- ⚡ **Fast JavaScript Frontend** — clean, responsive search UI with live results
+- 🔀 **Hybrid Ranking Engine** — adjustable blend of keyword + semantic scores
+- 🔬 **Explainable Results** — per-result score breakdown showing each signal's contribution
+- ⚡ **JavaScript Frontend** — responsive search UI with live re-ranking
 
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Crawler | Python, BeautifulSoup |
-| NLP Preprocessing | NLTK / spaCy |
-| Embeddings | sentence-transformers (Hugging Face) |
-| Ranking | scikit-learn (TF-IDF), rank_bm25, cosine similarity |
-| Backend API | Python, FastAPI |
+| Crawler | Python, BeautifulSoup, requests |
+| NLP Preprocessing | NLTK (tokenize, stopwords, Porter stemming) |
+| Embeddings | sentence-transformers (`all-MiniLM-L6-v2`) |
+| Ranking | rank_bm25, scikit-learn TF-IDF, cosine similarity |
+| Backend API | Python, FastAPI, Uvicorn |
 | Frontend | JavaScript (Vanilla JS + Fetch API), HTML5, CSS3 |
-| Data Storage | SQLite / JSON |
+| Data Storage | JSON + pickle + NumPy arrays |
 
 ## 📁 Project Structure
 
 ```
 neurosearch/
 ├── README.md
+├── SETUP.md
 ├── requirements.txt
 ├── .gitignore
 ├── crawler/
-│   └── crawler.py
+│   └── crawler.py          # BFS web crawler
 ├── indexer/
-│   └── indexer.py
+│   └── indexer.py          # preprocessing, inverted index, TF-IDF, embeddings
 ├── ranking/
-│   └── ranker.py
+│   └── ranker.py           # BM25 + semantic + hybrid ranking
 ├── app/
-│   └── main.py
-└── frontend/
-    ├── index.html
-    ├── style.css
-    └── script.js
+│   └── main.py             # FastAPI server
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   └── script.js
+└── data/                   # generated files (gitignored)
 ```
 
 ## 🚀 Getting Started
@@ -59,33 +63,57 @@ neurosearch/
 ```bash
 git clone https://github.com/arushkumar-aiml/neurosearch.git
 cd neurosearch
+
 pip install -r requirements.txt
-python app/main.py
+
+python crawler/crawler.py     # step 1: collect pages (~5 min)
+python indexer/indexer.py     # step 2: build the index (~3 min)
+python app/main.py            # step 3: start the server
 ```
 
-Then open `frontend/index.html` in your browser.
+Open **http://localhost:8000**
+
+Full instructions and troubleshooting are in [SETUP.md](SETUP.md).
+
+## 🔌 API
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/search?q=...&mode=hybrid&alpha=0.5` | Run a search |
+| `GET /api/explain?q=...` | Show how a query is tokenized |
+| `GET /api/stats` | Index statistics |
+
+## 🧠 How the Ranking Works
+
+```
+query ──┬─→ tokenize ──→ BM25 ─────────→ keyword score ──┐
+        │                                                ├─→ normalize → blend → rank
+        └─→ embed ────→ cosine similarity → semantic ────┘
+                                              score
+```
+
+`final = (alpha × semantic) + ((1 − alpha) × keyword)`
+
+Set `alpha = 0` for pure keyword search, `alpha = 1` for pure semantic, anything between for hybrid.
 
 ## 🗺️ Build Roadmap (15 Days)
 
 - [x] Day 1: Project setup, architecture, repo
-- [ ] Day 2-3: Web crawler
-- [ ] Day 4-5: Text preprocessing pipeline
-- [ ] Day 6-7: Inverted index + TF-IDF search
-- [ ] Day 8-9: BM25 ranking
-- [ ] Day 10-11: Semantic search with embeddings
-- [ ] Day 12: Hybrid ranking system
-- [ ] Day 13: JavaScript frontend + backend integration
+- [x] Day 2-3: Web crawler
+- [x] Day 4-5: Text preprocessing pipeline
+- [x] Day 6-7: Inverted index + TF-IDF search
+- [x] Day 8-9: BM25 ranking
+- [x] Day 10-11: Semantic search with embeddings
+- [x] Day 12: Hybrid ranking system
+- [x] Day 13: JavaScript frontend + backend integration
 - [ ] Day 14: Testing & polish
 - [ ] Day 15: Final demo & presentation
 
 ## 👨‍💻 Author
 
 **Arush Kumar** — BTech CS-AIML  
-GitHub: [@arushkumar-aiml](https://github.com/arushkumar-aiml)  
-Building this in public, one day at a time. Follow the journey on LinkedIn.
+GitHub: [@arushkumar-aiml](https://github.com/arushkumar-aiml)
 
 ## 📄 License
 
 MIT
-```
-

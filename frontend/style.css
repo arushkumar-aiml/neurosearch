@@ -1,0 +1,463 @@
+/* ===================================================================
+   NeuroSearch — stylesheet
+   Design idea: a mixing console. The two ranking signals (keyword and
+   semantic) each own a colour, and that colour carries through the
+   slider, the legend, and every result's score bar — so the colour
+   tells you where a score came from.
+   =================================================================== */
+
+:root {
+  --bg:            #101A2B;
+  --panel:         #18263C;
+  --panel-raised:  #1E3049;
+  --line:          #2A3B57;
+  --text:          #EAF0F8;
+  --muted:         #8FA3BF;
+
+  /* The two ranking signals — colour = meaning, not decoration */
+  --keyword:       #F2A65A;
+  --semantic:      #5BC8C0;
+
+  --radius:        10px;
+  --shell-width:   760px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One soft light source behind the console, nothing else decorative */
+.grid-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(91, 200, 192, 0.10), transparent 70%),
+    radial-gradient(700px 380px at 50% -4%, rgba(242, 166, 90, 0.07), transparent 70%);
+}
+
+.shell {
+  position: relative;
+  max-width: var(--shell-width);
+  margin: 0 auto;
+  padding: 56px 24px 80px;
+}
+
+/* ------------------------- CONSOLE ------------------------- */
+
+.console { margin-bottom: 36px; }
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  color: var(--semantic);
+  margin-bottom: 12px;
+}
+
+.brand h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.tagline {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 8px 0 0;
+  max-width: 44ch;
+}
+
+/* ------------------------- SEARCH ------------------------- */
+
+.search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 15px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-input::placeholder { color: #6E82A0; }
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--semantic);
+  box-shadow: 0 0 0 3px rgba(91, 200, 192, 0.16);
+}
+
+.search-input::-webkit-search-cancel-button { filter: invert(0.6); }
+
+.search-btn {
+  padding: 15px 26px;
+  background: var(--semantic);
+  color: #0B1624;
+  border: none;
+  border-radius: var(--radius);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.search-btn:hover { filter: brightness(1.1); }
+.search-btn:active { filter: brightness(0.95); }
+.search-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ------------------------- MIXER ------------------------- */
+
+.mixer {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.mixer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mixer-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.mode-switch {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.mode-btn {
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn:hover { color: var(--text); }
+.mode-btn:focus-visible { outline: 2px solid var(--semantic); outline-offset: 1px; }
+
+.mode-btn.is-active {
+  background: var(--panel-raised);
+  color: var(--text);
+}
+
+/* Slider */
+
+.slider-block {
+  margin-top: 16px;
+  transition: opacity 0.2s;
+}
+
+.slider-block.is-off {
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.slider-poles {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.pole {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pole b {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.pole-keyword b { color: var(--keyword); }
+.pole-semantic b { color: var(--semantic); }
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-keyword { background: var(--keyword); }
+.dot-semantic { background: var(--semantic); }
+
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--keyword), var(--semantic));
+  cursor: pointer;
+  margin: 0;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 3px solid var(--bg);
+  cursor: grab;
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 3px solid var(--bg);
+  cursor: grab;
+}
+
+.slider:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+
+/* ------------------------- STATUS ------------------------- */
+
+.status-bar {
+  margin-top: 12px;
+  min-height: 20px;
+}
+
+.status {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.status b {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* ------------------------- RESULTS ------------------------- */
+
+.results { display: flex; flex-direction: column; gap: 14px; }
+
+.result {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  transition: border-left-color 0.15s;
+}
+
+.result:hover { border-left-color: var(--semantic); }
+
+.result-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.result-rank {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.result-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.12rem;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.35;
+}
+
+.result-title:hover { color: var(--semantic); text-decoration: underline; }
+
+.result-url {
+  display: block;
+  font-size: 0.78rem;
+  color: #6E82A0;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-snippet {
+  font-size: 0.92rem;
+  color: #C4D2E4;
+  margin: 0 0 14px;
+  max-width: 68ch;
+}
+
+.result-snippet mark {
+  background: rgba(242, 166, 90, 0.22);
+  color: var(--keyword);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* Score breakdown — why this result ranked here */
+
+.score-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg);
+  margin-bottom: 7px;
+}
+
+.score-seg { height: 100%; transition: width 0.35s ease; }
+.score-seg-keyword { background: var(--keyword); }
+.score-seg-semantic { background: var(--semantic); }
+
+.score-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.score-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.score-legend b {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* ------------------------- STATES ------------------------- */
+
+.message {
+  text-align: center;
+  padding: 44px 20px;
+  color: var(--muted);
+}
+
+.message h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.message p { margin: 0; font-size: 0.9rem; max-width: 48ch; margin-inline: auto; }
+
+.message code {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85em;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--semantic);
+}
+
+.skeleton {
+  height: 104px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  opacity: 0.55;
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.6; }
+}
+
+/* ------------------------- FOOTER ------------------------- */
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.foot a { color: var(--semantic); text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+
+/* ------------------------- RESPONSIVE ------------------------- */
+
+@media (max-width: 620px) {
+  .shell { padding: 36px 16px 60px; }
+  .brand h1 { font-size: 2rem; }
+  .search-row { flex-direction: column; }
+  .search-btn { width: 100%; }
+  .mixer-head { flex-direction: column; align-items: stretch; }
+  .mode-switch { width: 100%; }
+  .mode-btn { flex: 1; }
+  .score-legend { flex-direction: column; gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
