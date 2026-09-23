@@ -190,7 +190,42 @@ def build_index():
     )
     print(f"  Embeddings shape: {embeddings.shape}\n")
 
-    # ---- Step 6: save everything ----
+    # ---- Step 6: topic clustering (the second ML layer) ----
+    # Unsupervised KMeans over the semantic embeddings -> every document gets
+    # auto-tagged with a topic, with ZERO manual labeling. Cluster labels are
+    # derived from the cluster's own top TF-IDF terms, not hand-written.
+    print("Discovering topics (KMeans over embeddings)...")
+    from sklearn.cluster import KMeans
+
+    n_clusters = max(1, min(10, len(documents) // 8 or 1))
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    cluster_ids = kmeans.fit_predict(embeddings)
+
+    feature_names = tfidf_vectorizer.get_feature_names_out()
+    doc_cluster = {}
+    cluster_labels = {}
+    for cluster_id in range(n_clusters):
+        member_idx = [i for i, c in enumerate(cluster_ids) if c == cluster_id]
+        for i in member_idx:
+            doc_cluster[documents[i]["id"]] = int(cluster_id)
+
+        if member_idx:
+            # Average TF-IDF vector across the cluster's members, then take
+            # the highest-weighted terms as a human-readable label.
+            avg_tfidf = np.asarray(tfidf_matrix[member_idx].mean(axis=0)).ravel()
+            top_term_idx = avg_tfidf.argsort()[::-1][:3]
+            label = " / ".join(feature_names[i].title() for i in top_term_idx)
+        else:
+            label = f"Topic {cluster_id + 1}"
+        cluster_labels[cluster_id] = label
+
+    print(f"  {n_clusters} topics discovered:")
+    for cid, label in cluster_labels.items():
+        count = sum(1 for c in cluster_ids if c == cid)
+        print(f"    [{cid}] {label}  ({count} docs)")
+    print()
+
+    # ---- Step 7: save everything ----
     print("Saving index files...")
     os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -203,6 +238,8 @@ def build_index():
                 "bm25_corpus": bm25_corpus,
                 "tfidf_vectorizer": tfidf_vectorizer,
                 "tfidf_matrix": tfidf_matrix,
+                "doc_cluster": doc_cluster,
+                "cluster_labels": cluster_labels,
             },
             f,
         )

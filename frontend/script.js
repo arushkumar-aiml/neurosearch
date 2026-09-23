@@ -18,6 +18,7 @@ const els = {
   keywordPct:   document.getElementById("keywordPct"),
   semanticPct:  document.getElementById("semanticPct"),
   modeButtons:  document.querySelectorAll(".mode-btn"),
+  suggestList:  document.getElementById("suggestList"),
 };
 
 // ------------------------- STATE -------------------------
@@ -94,6 +95,7 @@ function renderResults(data) {
           <a class="result-title" href="${escapeHtml(r.url)}" target="_blank" rel="noopener">
             ${escapeHtml(r.title)}
           </a>
+          ${r.topic ? `<span class="result-topic">${escapeHtml(r.topic)}</span>` : ""}
         </div>
         <span class="result-url">${escapeHtml(r.url)}</span>
         <p class="result-snippet">${highlight(r.snippet, data.query)}</p>
@@ -218,12 +220,101 @@ async function checkIndex() {
   }
 }
 
+// ------------------------- AUTOCOMPLETE (ML vocabulary suggest) -------------------------
+
+let suggestTimer = null;
+let activeSuggestIndex = -1;
+
+function hideSuggestions() {
+  els.suggestList.classList.add("is-hidden");
+  els.suggestList.innerHTML = "";
+  activeSuggestIndex = -1;
+}
+
+function renderSuggestions(terms) {
+  if (!terms.length) {
+    hideSuggestions();
+    return;
+  }
+  els.suggestList.innerHTML = terms
+    .map(
+      (term, i) =>
+        `<button type="button" class="suggest-item" data-index="${i}" role="option">${escapeHtml(term)}</button>`
+    )
+    .join("");
+  els.suggestList.classList.remove("is-hidden");
+  activeSuggestIndex = -1;
+
+  els.suggestList.querySelectorAll(".suggest-item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      els.query.value = btn.textContent;
+      hideSuggestions();
+      runSearch();
+    });
+  });
+}
+
+async function fetchSuggestions(prefix) {
+  try {
+    const response = await fetch(`${API}/api/suggest?prefix=${encodeURIComponent(prefix)}`);
+    if (!response.ok) return;
+    const data = await response.json();
+    // Ignore stale responses if the box has changed since this was fired
+    if (els.query.value.trim().split(/\s+/).pop().toLowerCase() === prefix) {
+      renderSuggestions(data.suggestions || []);
+    }
+  } catch (err) {
+    /* autocomplete failing silently is fine — it's a convenience, not core search */
+  }
+}
+
+function onQueryInput() {
+  clearTimeout(suggestTimer);
+  const lastWord = els.query.value.trim().split(/\s+/).pop().toLowerCase();
+  if (!state.indexReady || lastWord.length < 2) {
+    hideSuggestions();
+    return;
+  }
+  suggestTimer = setTimeout(() => fetchSuggestions(lastWord), 150);
+}
+
+function moveSuggestSelection(delta) {
+  const items = els.suggestList.querySelectorAll(".suggest-item");
+  if (!items.length) return;
+  activeSuggestIndex = (activeSuggestIndex + delta + items.length) % items.length;
+  items.forEach((el, i) => el.classList.toggle("is-active", i === activeSuggestIndex));
+  els.query.value = items[activeSuggestIndex].textContent;
+}
+
 // ------------------------- EVENTS -------------------------
 
-els.searchBtn.addEventListener("click", runSearch);
+els.searchBtn.addEventListener("click", () => {
+  hideSuggestions();
+  runSearch();
+});
+
+els.query.addEventListener("input", onQueryInput);
 
 els.query.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") runSearch();
+  const suggestionsOpen = !els.suggestList.classList.contains("is-hidden");
+  if (e.key === "ArrowDown" && suggestionsOpen) {
+    e.preventDefault();
+    moveSuggestSelection(1);
+  } else if (e.key === "ArrowUp" && suggestionsOpen) {
+    e.preventDefault();
+    moveSuggestSelection(-1);
+  } else if (e.key === "Enter") {
+    hideSuggestions();
+    runSearch();
+  } else if (e.key === "Escape") {
+    hideSuggestions();
+  }
+});
+
+document.addEventListener("click", (e) => {
+  if (!els.suggestList.contains(e.target) && e.target !== els.query) {
+    hideSuggestions();
+  }
 });
 
 els.modeButtons.forEach((btn) =>

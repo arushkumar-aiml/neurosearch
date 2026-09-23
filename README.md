@@ -21,7 +21,10 @@ The interface exposes the ranking itself: a live slider blends keyword and seman
 - 🧠 **Semantic Search** — sentence-transformer embeddings for meaning-based matching
 - 🔀 **Hybrid Ranking Engine** — adjustable blend of keyword + semantic scores
 - 🔬 **Explainable Results** — per-result score breakdown showing each signal's contribution
-- ⚡ **JavaScript Frontend** — responsive search UI with live re-ranking
+- 🗂️ **AI Topic Clustering** — KMeans over the embeddings auto-tags every result with a topic, no manual labels
+- ✂️ **ML-Generated Snippets** — shows the sentence closest in *meaning* to your query, not a static substring
+- 🔎 **Smart Autocomplete** — vocabulary-ranked query suggestions as you type
+- ⚡ **JavaScript Frontend** — responsive search UI with live re-ranking, red/black themed
 
 ## 🛠️ Tech Stack
 
@@ -82,6 +85,8 @@ Full instructions and troubleshooting are in [SETUP.md](SETUP.md).
 | `GET /api/search?q=...&mode=hybrid&alpha=0.5` | Run a search |
 | `GET /api/explain?q=...` | Show how a query is tokenized |
 | `GET /api/stats` | Index statistics |
+| `GET /api/suggest?prefix=...` | Autocomplete suggestions |
+| `GET /api/topics` | AI-discovered topic clusters |
 
 ## 🧠 How the Ranking Works
 
@@ -95,6 +100,14 @@ query ──┬─→ tokenize ──→ BM25 ─────────→ key
 `final = (alpha × semantic) + ((1 − alpha) × keyword)`
 
 Set `alpha = 0` for pure keyword search, `alpha = 1` for pure semantic, anything between for hybrid.
+
+## 🎤 Presentation / Viva Demo
+
+A scripted terminal walkthrough for presenting the project (problem, architecture, USPs, tech stack, then a live keyword-vs-semantic-vs-hybrid comparison on a query you type in):
+
+```bash
+python presentation.py
+```
 
 ## 🗺️ Build Roadmap (15 Days)
 

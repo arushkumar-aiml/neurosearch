@@ -23,6 +23,7 @@ Three ranking strategies:
 
 import os
 import pickle
+import re
 
 import numpy as np
 
@@ -56,6 +57,9 @@ class NeuroRanker:
         self.bm25 = None
         self.model = None
         self.processor = None
+        self.inverted_index = None
+        self.doc_cluster = {}
+        self.cluster_labels = {}
         self.ready = False
 
     # ------------------------- LOADING -------------------------
@@ -73,6 +77,9 @@ class NeuroRanker:
             data = pickle.load(f)
 
         self.documents = data["documents"]
+        self.inverted_index = data.get("inverted_index", {})
+        self.doc_cluster = data.get("doc_cluster", {})
+        self.cluster_labels = data.get("cluster_labels", {})
 
         # BM25 needs the tokenized corpus
         from rank_bm25 import BM25Okapi
@@ -103,11 +110,71 @@ class NeuroRanker:
             return np.zeros(len(self.documents))
         return np.array(self.bm25.get_scores(tokens))
 
-    def semantic_scores(self, query):
+    def semantic_scores(self, query, query_vector=None):
         """Cosine similarity between the query vector and every document vector."""
-        query_vector = self.model.encode(query, normalize_embeddings=True)
+        if query_vector is None:
+            query_vector = self.model.encode(query, normalize_embeddings=True)
         # Embeddings are normalized, so a dot product IS cosine similarity
         return self.embeddings @ query_vector
+
+    # ------------------------- ML SNIPPET -------------------------
+
+    _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+
+    def smart_snippet(self, doc, query_vector, fallback, max_sentences=2):
+        """
+        Instead of a static substring, pick the sentence(s) inside the
+        document whose MEANING is closest to the query. Same embedding
+        model as semantic search, just applied at sentence granularity.
+        Only called for the handful of results actually shown, so it's cheap.
+        """
+        text = doc.get("text", "")
+        sentences = [s.strip() for s in self._SENTENCE_SPLIT.split(text) if len(s.strip()) > 20]
+        if len(sentences) < 2:
+            return fallback
+
+        candidates = sentences[:40]  # cap for speed on very long articles
+        sentence_vectors = self.model.encode(candidates, normalize_embeddings=True)
+        sims = sentence_vectors @ query_vector
+        top_idx = np.argsort(sims)[::-1][:max_sentences]
+        top_idx = sorted(top_idx)  # keep original reading order
+        chosen = " ".join(candidates[i] for i in top_idx)
+        return chosen if len(chosen) > 40 else fallback
+
+    def topic_for(self, doc_id):
+        cluster_id = self.doc_cluster.get(doc_id)
+        if cluster_id is None:
+            return None
+        return self.cluster_labels.get(cluster_id, None)
+
+    # ------------------------- AUTOCOMPLETE -------------------------
+
+    def suggest(self, prefix, limit=8):
+        """
+        Query-time autocomplete: prefix-match against the vocabulary built
+        by the indexer, ranked by how many documents each term appears in.
+        Cheap trie-less lookup - fine at this vocabulary size.
+        """
+        prefix = prefix.strip().lower()
+        if not prefix or not self.inverted_index:
+            return []
+        matches = [
+            (term, len(postings))
+            for term, postings in self.inverted_index.items()
+            if term.startswith(prefix)
+        ]
+        matches.sort(key=lambda pair: pair[1], reverse=True)
+        return [term for term, _ in matches[:limit]]
+
+    def get_topics(self):
+        """List every discovered topic with how many documents fall into it."""
+        counts = {}
+        for cluster_id in self.doc_cluster.values():
+            counts[cluster_id] = counts.get(cluster_id, 0) + 1
+        return [
+            {"id": cid, "label": self.cluster_labels.get(cid, f"Topic {cid}"), "count": counts.get(cid, 0)}
+            for cid in sorted(self.cluster_labels)
+        ]
 
     # ------------------------- SEARCH -------------------------
 
@@ -125,8 +192,10 @@ class NeuroRanker:
         if not query:
             return []
 
+        query_vector = self.model.encode(query, normalize_embeddings=True)
+
         raw_keyword = self.keyword_scores(query)
-        raw_semantic = self.semantic_scores(query)
+        raw_semantic = self.semantic_scores(query, query_vector=query_vector)
 
         norm_keyword = normalize(raw_keyword)
         norm_semantic = normalize(raw_semantic)
@@ -151,7 +220,8 @@ class NeuroRanker:
                 "id": doc["id"],
                 "title": doc["title"],
                 "url": doc["url"],
-                "snippet": doc["snippet"],
+                "snippet": self.smart_snippet(doc, query_vector, fallback=doc["snippet"]),
+                "topic": self.topic_for(doc["id"]),
                 "score": round(float(final[idx]), 4),
                 # These two are what power the score breakdown bar in the UI —
                 # showing WHY a result ranked where it did

@@ -92,6 +92,22 @@ def search(
     }
 
 
+@app.get("/api/suggest")
+def suggest(prefix: str = Query(..., min_length=1)):
+    """Autocomplete: vocabulary terms starting with `prefix`, most common first."""
+    if not ranker.ready:
+        return {"prefix": prefix, "suggestions": []}
+    return {"prefix": prefix, "suggestions": ranker.suggest(prefix)}
+
+
+@app.get("/api/topics")
+def topics():
+    """Every topic auto-discovered by KMeans clustering over the embeddings."""
+    if not ranker.ready:
+        return {"topics": []}
+    return {"topics": ranker.get_topics()}
+
+
 @app.get("/api/explain")
 def explain(q: str = Query(..., min_length=1)):
     if not ranker.ready:
@@ -108,6 +124,7 @@ def stats():
         "documents": len(ranker.documents),
         "embedding_dimensions": int(ranker.embeddings.shape[1]),
         "model": "all-MiniLM-L6-v2",
+        "topics": len(ranker.cluster_labels),
     }
 
 
